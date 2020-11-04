@@ -1,0 +1,133 @@
+#!/bin/sh
+# Control script for IBM Aspera Cargo on MacOS
+# Laurent 2020
+if [ 0 != $(id -u) ];then
+	echo "Run as root:"
+	echo "sudo $0"
+	exit 1
+fi
+label=com.aspera.cargod
+cargodir=/Library/Aspera/Cargo
+cargoexe=$cargodir/sbin/cargo
+cargolog=$cargodir/var/log
+plist_path=/Library/LaunchDaemons/${label}.plist
+
+case "$1" in
+install)
+	echo "installing launchctl plist: $plist_path"
+	launchctl unload $plist_path 2> /dev/null
+	cat<<EOF>$plist_path
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-/Apple/DTD PLIST 1.0/EN" "http:/www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>$label</string>
+	<key>KeepAlive</key>
+	<false/>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>Debug</key>
+	<true/>
+	<key>ProgramArguments</key>
+	<array>
+	<string>$cargoexe</string>
+	</array>
+	<key>StandardOutPath</key>
+	<string>$cargolog/cargo.stdout</string>
+	<key>StandardErrorPath</key>
+	<string>$cargolog/cargo.stderr</string>
+</dict>
+</plist>
+EOF
+	chown root $plist_path
+	chmod 644 $plist_path
+	launchctl load $plist_path
+	;;
+uninstall)
+	launchctl stop $label
+	launchctl unload $plist_path
+	rm -f $plist_path
+	;;
+start|stop)
+	launchctl $1 $label
+	;;
+status)
+	launchctl list | grep $label
+	;;
+logfolder)
+	echo $cargolog
+	;;
+journal)
+	tail -f $cargolog/aspera-cargo.log
+	;;
+save)
+	conffile=$2
+	deletetmp=false
+	if [ -z "$conffile" ];then
+		echo "Please provide config file to load" 1>&2
+		exit 1
+	fi
+	if [ "$conffile" = - ];then
+		deletetmp=true
+		conffile=$(mktemp)
+	fi
+	$cargoexe -w "$conffile"
+	if $deletetmp; then
+		cat "$conffile"
+		rm -f "$conffile"
+	fi
+	;;
+load)
+	conffile=$2
+	deletetmp=false
+	startdaemon=false
+	deleteconf=false
+	if [ -z "$conffile" ];then
+		echo "Please provide config file to save to" 1>&2
+		exit 1
+	fi
+	if [ "$conffile" = = ];then
+		deleteconf=true
+		conffile=+
+	fi
+	if [ "$conffile" = + ];then
+		startdaemon=true
+		conffile=-
+		launchctl stop $label
+	fi
+	if [ "$conffile" = - ];then
+		deletetmp=true
+		conffile=$(mktemp)
+		cat > "$conffile"
+	fi
+	$deleteconf && $cargoexe -u
+	$cargoexe -f "$conffile"
+	$deletetmp && rm -f "$conffile"
+	$startdaemon && launchctl start $label
+	;;
+reset)
+	echo "reseting configuration to defaults"
+	$cargoexe -u
+	;;
+debug)
+	level=$2
+	if [ -z "$level" ];then
+		echo "Please provide debug level" 1>&2
+		exit 1
+	fi
+	tmp=$(mktemp)
+	echo '{"conf":{"settings":{"debug.level":'$((0+$level))'}}}' > $tmp
+	$cargoexe -f "$tmp"
+	rm -f $tmp
+	;;
+*)
+cat << EOF
+Usage: $(basename $0) install|uninstall|start|stop|status|logfolder|journal|save|load|reset|debug
+    save - : display configuration
+    load - : load configuration from stdin
+    load + : stop daemon, load from stdin, start daemon
+    load = : stop daemon, delete configuration, load from stdin, start daemon
+EOF
+esac
+
