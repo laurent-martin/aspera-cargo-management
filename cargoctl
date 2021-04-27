@@ -6,16 +6,19 @@ if [ 0 != $(id -u) ];then
 	echo "sudo $0"
 	exit 1
 fi
-label=com.aspera.cargod
+label=com.ibm.aspera.cargo
 cargodir=/Library/Aspera/Cargo
 cargoexe=$cargodir/sbin/cargo
 cargolog=$cargodir/var/log
 plist_path=/Library/LaunchDaemons/${label}.plist
 
+# Note: original plist on Macos has "RunOnlyOnce" which prevents stop + start
+
 case "$1" in
 install)
-	echo "installing launchctl plist: $plist_path"
+	echo "Installing launchctl plist: $plist_path"
 	launchctl unload $plist_path 2> /dev/null
+	# https://manpagez.com/man/5/launchd.plist/
 	cat<<EOF>$plist_path
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-/Apple/DTD PLIST 1.0/EN" "http:/www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -65,7 +68,7 @@ save)
 	conffile=$2
 	deletetmp=false
 	if [ -z "$conffile" ];then
-		echo "Please provide config file to load" 1>&2
+		echo "Please provide config file to save to" 1>&2
 		exit 1
 	fi
 	if [ "$conffile" = - ];then
@@ -84,7 +87,7 @@ load)
 	startdaemon=false
 	deleteconf=false
 	if [ -z "$conffile" ];then
-		echo "Please provide config file to save to" 1>&2
+		echo "Please provide config file to load from" 1>&2
 		exit 1
 	fi
 	if [ "$conffile" = = ];then
@@ -107,7 +110,7 @@ load)
 	$startdaemon && launchctl start $label
 	;;
 reset)
-	echo "reseting configuration to defaults"
+	echo "Resetting configuration to defaults"
 	$cargoexe -u
 	;;
 debug)
