@@ -4,7 +4,7 @@ IBM Aspera Cargo version: 3.2
 
 IBM Aspera Cargo documentation can be found here:
 
-[https://www.ibm.com/support/knowledgecenter/SSH2ME](https://www.ibm.com/support/knowledgecenter/SSH2ME)
+[https://www.ibm.com/docs/en/aspera-cargo](https://www.ibm.com/docs/en/aspera-cargo)
 
 # Concepts
 
@@ -58,10 +58,10 @@ On the central server:
 ...
 }
 EOF
-# ssh admin@192.168.0.223 /Library/Aspera/cargo/sbin/cargoctl stop
-# ssh admin@192.168.0.223 /Library/Aspera/cargo/sbin/cargoctl reset
-# ssh admin@192.168.0.223 /Library/Aspera/cargo/sbin/cargoctl load - < newconf.json
-# ssh admin@192.168.0.223 /Library/Aspera/cargo/sbin/cargoctl start
+# ssh admin@192.168.0.223 sudo /Library/Aspera/cargo/sbin/cargoctl stop
+# ssh admin@192.168.0.223 sudo /Library/Aspera/cargo/sbin/cargoctl reset
+# ssh admin@192.168.0.223 sudo /Library/Aspera/cargo/sbin/cargoctl load - < newconf.json
+# ssh admin@192.168.0.223 sudo /Library/Aspera/cargo/sbin/cargoctl start
 ```
 
 Or alternatively in one line:
